@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Demo</title>
+
+    <link rel="stylesheet" type="text/css" href="./css/default.css">
+
+    <script src="./libraries/socket.io.js"></script>
+    <script src="./libraries/jquery-2.2.1.js"></script>
+</head>
+<body>
+
+    <div id="container">
+
+    <!-- HOME SCREEN -->
+    <div id="homeScreen" class="screen">
+    <div  id="loginForm" class="form">
+    Username: <br> <input type="text" name="username">	<br>
+    Room name: <br> <input type="text" name="roomname">	<br>
+    Passcode (optional): <br> <input type="text" name="passcode">	<br>
+ 	<input type="submit" id="submitRoomCreation" value="Create Room">	<br>
+ 	<input type="submit" id="submitRoomLogin" value="Join Room">	<br>
+    </div>
+    </div>
+    <!-- END HOME SCREEN -->
+
+    <!-- PLAY SCREEN -->
+    <div id="playScreen" class="screen">
+    <button id="playScreenBack" class="backButton">Back</button>
+    </div>
+    <!-- END PLAY SCREEN -->
+
+    </div>
+
+
+    <script>
+ 
+    $(document).ready(function()
+    {
+    	$("#submitRoomCreation").click(function (event)
+    	{
+    		console.log("clicked room creation");
+
+    		//event.preventDefault();
+
+            socket.emit("createRoom", )
+
+    		$("#homeScreen").animate({left: '-110%'}, 1000);
+            $("#playScreen").animate({left: '-00%'}, 1000);
+    	});
+
+    	$("#submitRoomLogin").click(function (event)
+    	{
+    		console.log("clicked room login");
+
+    		event.preventDefault();
+            $("#homeScreen").animate({left: '-110%'}, 1000);
+            $("#playScreen").animate({left: '0%'}, 1000);
+    	});
+
+        $("#playScreenBack").click(function (event)
+        {
+            console.log("clicked back from play scren");
+
+            $("#homeScreen").animate({left: '0%'}, 1000);
+            $("#playScreen").animate({left: '110%'}, 1000);
+        });
+    });
+ 
+
+    // SOCKET.IO functions
+    var socket = io.connect("http://45.62.224.100:8081"); //Add ip here.
+
+    socket.on('connect', function(data)
+    {
+        console.log("A user connected");
+    });
+
+    /*socket.on('log', function(data)
+    {
+        console.log(data.log);
+    });*/
+    </script>
+</body>
+</html>
