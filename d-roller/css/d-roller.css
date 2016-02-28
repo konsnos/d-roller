@@ -27,10 +27,25 @@
 
 .backButton
 {
-	width: 100%;
 	position: absolute;
+	width: 100%;
 	left: 0px;
 	top: 0px;
+}
+
+.messagesLog
+{
+	position:absolute;
+	border: 1px solid black;
+	overflow: scroll;
+	overflow-x: hidden;
+	width: 100%;
+}
+
+.inputMessage
+{
+	position: absolute;
+	bottom: 0px;
 }
 
 #playScreen

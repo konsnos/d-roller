@@ -4,83 +4,201 @@
     <meta charset="utf-8">
     <title>Demo</title>
 
-    <link rel="stylesheet" type="text/css" href="./css/default.css">
+    <link rel="stylesheet" type="text/css" href="./css/d-roller.css">
+    <link rel="stylesheet" type="text/css" href="./css/bootstrap.css">
 
-    <script src="./libraries/socket.io.js"></script>
-    <script src="./libraries/jquery-2.2.1.js"></script>
+    <script src="./js/socket.io.js"></script>
+    <script src="./js/jquery-2.2.1.js"></script>
 </head>
 <body>
 
     <div id="container">
 
-    <!-- HOME SCREEN -->
-    <div id="homeScreen" class="screen">
-    <div  id="loginForm" class="form">
-    Username: <br> <input type="text" name="username">	<br>
-    Room name: <br> <input type="text" name="roomname">	<br>
-    Passcode (optional): <br> <input type="text" name="passcode">	<br>
- 	<input type="submit" id="submitRoomCreation" value="Create Room">	<br>
- 	<input type="submit" id="submitRoomLogin" value="Join Room">	<br>
-    </div>
-    </div>
-    <!-- END HOME SCREEN -->
+        <!-- HOME SCREEN -->
+        <div id="homeScreen" class="screen">
+            <div  id="loginForm" class="form">
+                Character name: <br> <input type="text" name="username" id="nameInput">	<br>
+                Party name: <br> <input type="text" name="roomname" id="partyNameInput">	<br>
+                Passphrase: <br> <input type="text" name="passcode" id="passphraseInput">	<br>
+             	<input type="submit" id="submitRoomCreation" value="Create/Join" disabled>
+                <div id="homeScreenWarnings">Connecting</div>
+            </div>
+        </div>
+        <!-- END HOME SCREEN -->
 
-    <!-- PLAY SCREEN -->
-    <div id="playScreen" class="screen">
-    <button id="playScreenBack" class="backButton">Back</button>
-    </div>
-    <!-- END PLAY SCREEN -->
+        <!-- PLAY SCREEN -->
+        <div id="playScreen" class="screen">
+            <button id="playScreenBack" class="backButton">Back</button>
+            <div id="partyMessages" class="messagesLog">
+            <!-- Here the messages are printed. -->
+            </div>
+
+            <div class="inputMessage" id="chat">
+                <!--<form role="form">  -->
+                    <div class="row">
+                      <div class="col-xs-12">
+                        <div class="input-group input-group-lg">
+                            <input type="text" class="form-control" id="inputMessage" placeholder="Your message" maxlength="100" />
+                          <div class="input-group-btn">
+                            <button class="btn btn-success" id="sendMsgBtn">Send</button>
+                          </div><!-- /btn-group -->
+                        </div><!-- /input-group -->
+                      </div><!-- /.col-xs-12 -->
+                    </div><!-- /.row -->
+                <!--</form>-->
+            </div>
+        </div>
+        <!-- END PLAY SCREEN -->
 
     </div>
 
 
     <script>
+
+    const SCREEN_TRANSITION_SPEED = 600;
+
+    var socket = io.connect("http://45.62.224.100:8081");
  
     $(document).ready(function()
     {
     	$("#submitRoomCreation").click(function (event)
     	{
-    		console.log("clicked room creation");
+            var name = document.getElementById("nameInput").value;
+            var partyName = document.getElementById("partyNameInput").value;
+            var partyPassphrase = document.getElementById("passphraseInput").value;
 
-    		//event.preventDefault();
+            if(name == "" || partyName == "")
+            {
+                // reject data
+                rejectHomeScreen();
 
-            socket.emit("createRoom", )
-
-    		$("#homeScreen").animate({left: '-110%'}, 1000);
-            $("#playScreen").animate({left: '-00%'}, 1000);
-    	});
-
-    	$("#submitRoomLogin").click(function (event)
-    	{
-    		console.log("clicked room login");
-
-    		event.preventDefault();
-            $("#homeScreen").animate({left: '-110%'}, 1000);
-            $("#playScreen").animate({left: '0%'}, 1000);
+                // focus to error
+                if(name == "")
+                {
+                    document.getElementById("nameInput").focus();
+                }
+                else if(partyName == "")
+                {
+                    document.getElementById("partyNameInput").focus();
+                }
+            }
+            else
+            {
+                socket.emit("createJoinPartyAndRegisterName", name, partyName, partyPassphrase);
+            }
     	});
 
         $("#playScreenBack").click(function (event)
         {
-            console.log("clicked back from play scren");
+            socket.emit("leaveParty");
 
-            $("#homeScreen").animate({left: '0%'}, 1000);
-            $("#playScreen").animate({left: '110%'}, 1000);
+            $("#partyMessages").empty();
+
+            $("#homeScreen").animate({left: '0%'}, SCREEN_TRANSITION_SPEED);
+            $("#playScreen").animate({left: '110%'}, SCREEN_TRANSITION_SPEED);
+        });
+
+        /**
+         * In case of enter key pressed run the send button.
+         */
+        $("#inputMessage").keypress(function(event)
+        {
+            if(event.which == 13)
+            {
+                sendPartyMessage();
+            }
+        });
+
+        $("#sendMsgBtn").click(function (event)
+        {
+            sendPartyMessage();
+        });
+
+        resizeMessagesLog();
+        $( window ).bind("resize", function()
+        {
+            resizeMessagesLog();
         });
     });
- 
 
-    // SOCKET.IO functions
-    var socket = io.connect("http://45.62.224.100:8081"); //Add ip here.
-
-    socket.on('connect', function(data)
+    function sendPartyMessage()
     {
-        console.log("A user connected");
+        var message = document.getElementById('inputMessage').value;
+
+        if(message.length > 0)
+        {
+            socket.emit("partyMsg", message);
+
+            document.getElementById('inputMessage').value = "";
+        }
+    }
+
+    /**
+     * Resizes teh messages log to cover all free screen space.
+     */
+    function resizeMessagesLog()
+    {
+        var offsetHeight = document.getElementById('playScreenBack').offsetHeight;
+        var endHeight = document.getElementById('inputMessage').getBoundingClientRect().top;
+        $("#partyMessages").css({top: offsetHeight});
+        $("#partyMessages").height(endHeight - offsetHeight);
+    }
+
+    function rejectHomeScreen()
+    {
+        $("#homeScreen").animate({left: '-5px'}, 50).animate({left: '5px'}, 50).animate({left: '-5px'}, 50).animate({left: '5px'}, 50).animate({left: '-5px'}, 50).animate({left: '5px'}, 50).animate({left: '0%'}, 50);
+    }
+ 
+    // SOCKET.IO functions
+
+    socket.on('connect', function()
+    {
+        $("#submitRoomCreation").removeAttr('disabled');
+        document.getElementById("homeScreenWarnings").innerHTML = "";
     });
 
-    /*socket.on('log', function(data)
+    socket.on('disconnect', function()
     {
-        console.log(data.log);
-    });*/
+        $("#submitRoomCreation").attr('disabled', true);
+
+        $("#homeScreen").animate({left: '0%'}, SCREEN_TRANSITION_SPEED);
+        $("#playScreen").animate({left: '110%'}, SCREEN_TRANSITION_SPEED);
+
+        document.getElementById("homeScreenWarnings").innerHTML = "Disconnected from server";
+    });
+
+    socket.on('error', function(data)
+    {
+        $("#submitRoomCreation").attr('disabled', true);
+        console.log("Connection error: " + data);
+    });
+
+    socket.on('rejectedLogIn', function()
+    {
+        document.getElementById("homeScreenWarnings").innerHTML = "Party name already taken or wrong passphrase";
+        rejectHomeScreen();
+    });
+
+    socket.on('partyCreated', function(partyName, partyMembers)
+    {
+        $("#homeScreen").animate({left: '-110%'}, SCREEN_TRANSITION_SPEED);
+        $("#playScreen").animate({left: '0%'}, SCREEN_TRANSITION_SPEED);
+
+        document.getElementById("homeScreenWarnings").innerHTML = "";
+    });
+
+    socket.on('partyLoggedIn', function(partyName, partyMembers)
+    {
+        $("#homeScreen").animate({left: '-110%'}, SCREEN_TRANSITION_SPEED);
+        $("#playScreen").animate({left: '0%'}, SCREEN_TRANSITION_SPEED);
+
+        document.getElementById("homeScreenWarnings").innerHTML = "";
+    });
+
+    socket.on('partyMsg', function(who, msg)
+    {
+        $("#partyMessages").append("<strong>" + who + "</strong>: " + msg + "<br>");
+    });
     </script>
 </body>
 </html>
