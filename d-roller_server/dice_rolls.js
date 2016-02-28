@@ -135,7 +135,8 @@ function checkRollsInText(text, pcName, partyName)
     var rolls = [];
 	var dIndex = 0;
     var rollObj= {};
-	while((dIndex = text.indexOf('d', dIndex)) != -1)	// Search for d
+    var textLC = text.toLowerCase();
+	while((dIndex = textLC.indexOf('d', dIndex)) != -1)	// Search for d
 	{
 		rollObj = getRoll(dIndex, text);
 		if(rollObj.success)

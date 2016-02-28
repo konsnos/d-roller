@@ -219,12 +219,14 @@
     
     socket.on('rolls', function(who, rolls)
     {
-        var rollsStr = "";
+        var rollsStr;
+        var sum;
+        var rollObj;
         for(var rollsIndex = 0;rollsIndex < rolls.length;rollsIndex++)
         {
-            var rollObj = rolls[rollsIndex];
-            var sum = 0;
-            rollsStr = rollsStr.concat("<strong>" + who + "</strong> rolled " + rollObj.rolls[0]);
+            rollObj = rolls[rollsIndex];
+            sum = 0;
+            rollsStr = "<strong>" + who + "</strong> rolled " + rollObj.rolls[0];
             sum += rollObj.rolls[0];
             
             for(var sameRollsIndex = 1;sameRollsIndex < rollObj.rolls.length;sameRollsIndex++)
