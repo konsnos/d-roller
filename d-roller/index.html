@@ -160,7 +160,9 @@
     socket.on('disconnect', function()
     {
         $("#submitRoomCreation").attr('disabled', true);
-
+        
+        $("#partyMessages").empty();
+        
         $("#homeScreen").animate({left: '0%'}, SCREEN_TRANSITION_SPEED);
         $("#playScreen").animate({left: '110%'}, SCREEN_TRANSITION_SPEED);
 
@@ -197,7 +199,54 @@
 
     socket.on('partyMsg', function(who, msg)
     {
-        $("#partyMessages").append("<strong>" + who + "</strong>: " + msg + "<br>");
+        $("#partyMessages").append("<strong>" + who + ":</strong> " + msg + "<br>");
+    });
+    
+    socket.on('systemPartyMsg', function(msg)
+    {
+        $("#partyMessages").append("<strong>" + who + ":</strong> " + msg + "<br>");
+    });
+    
+    socket.on('partyMemberLeft', function(who)
+    {
+        $("#partyMessages").append("<strong>" + who + "</strong> left<br>");
+    });
+    
+    socket.on('partyMemberJoined', function(who)
+    {
+        $("#partyMessages").append("<strong>" + who + "</strong> joined in<br>");
+    });
+    
+    socket.on('rolls', function(who, rolls)
+    {
+        var rollsStr = "";
+        for(var rollsIndex = 0;rollsIndex < rolls.length;rollsIndex++)
+        {
+            var rollObj = rolls[rollsIndex];
+            var sum = 0;
+            rollsStr = rollsStr.concat("<strong>" + who + "</strong> rolled " + rollObj.rolls[0]);
+            sum += rollObj.rolls[0];
+            
+            for(var sameRollsIndex = 1;sameRollsIndex < rollObj.rolls.length;sameRollsIndex++)
+            {
+                rollsStr = rollsStr.concat("+" + rollObj.rolls[sameRollsIndex]);
+                sum += rollObj.rolls[sameRollsIndex];
+            }
+            
+            if(rollObj.modifier != 0)
+            {
+                if(rollObj.modifier > 0)
+                    rollsStr = rollsStr.concat("+" + rollObj.modifier);
+                else
+                    rollsStr = rollsStr.concat(rollObj.modifier);
+                    
+                sum += rollObj.modifier;
+            }
+            
+            rollsStr = rollsStr.concat(" for a sum of " + sum + "<br>");
+            
+            $("#partyMessages").append(rollsStr);
+        }
     });
     </script>
 </body>
