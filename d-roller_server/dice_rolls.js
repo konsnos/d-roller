@@ -197,11 +197,7 @@ function getRoll(dIndex, text)
         {
             var char = text.charAt(modifierCharIndex);
             
-            if(char == ' ')
-            {
-                modifierCharIndex++;
-            }
-            else if(char == '+' || char == '-')	// there is a modifier!
+            if(char == '+' || char == '-')	// there is a modifier!
             {
                 var numberIndex = modifierCharIndex+1;
                 while(numberIndex < text.length)	// Does a number follow?
@@ -213,10 +209,6 @@ function getRoll(dIndex, text)
                         if(char == '-')
                             modifierNumber *= -1;
                         break;
-                    }
-                    else if(char == ' ')	// Search for the next character.
-                    {
-                        numberIndex++;
                     }
                     else	// No modifiers it seems
                     {

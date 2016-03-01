@@ -11,7 +11,8 @@
     <script src="./js/jquery-2.2.1.js"></script>
 </head>
 <body>
-
+   
+   <div id="overlay"></div>
     <div id="container">
 
         <!-- HOME SCREEN -->
@@ -34,30 +35,55 @@
             </div>
 
             <div class="inputMessage" id="chat">
-                <!--<form role="form">  -->
                     <div class="row">
                       <div class="col-xs-12">
                         <div class="input-group input-group-lg">
                             <input type="text" class="form-control" id="inputMessage" placeholder="Your message" maxlength="100" />
                           <div class="input-group-btn">
                             <button class="btn btn-success" id="sendMsgBtn">Send</button>
+                            <button class="btn btn-info" id="infoBtn">?</button>
                           </div><!-- /btn-group -->
                         </div><!-- /input-group -->
                       </div><!-- /.col-xs-12 -->
                     </div><!-- /.row -->
-                <!--</form>-->
             </div>
         </div>
         <!-- END PLAY SCREEN -->
 
     </div>
 
+    <!-- HELP POP UP -->
+    <div class="popUp-Help" id="popUpHelp">
+        <h3>Let's roll!</h3>
+        You can use the input message to type any dice roll. The result of the roll will be shown in the chat messages to all party members. Examples of rolls follow.
+        <h4>Basic</h4><hr>
+        <ul>
+            <li>d6 - Will roll a 6-sided dice</li>
+            <li>d20 - Will roll a 20-sided dice</li>
+            <li>d87 - Will roll a 87-sided dice (you can use as many sides as you like)</li> 
+        </ul>
+        <h4>Multiple Rolls</h4><hr>
+        <ul>
+            <li>2d12 - Will roll a 12-sided dice 2 times, and will show the sum of the rolls</li>
+            <li>5d10 - Will roll a 12-sided dice 5 times, and will show the sum of the rolls</li>
+        </ul>
+        <h4>Modifiers</h4><hr>
+        <ul>
+            <li>d10+2 - Will roll a 10-sided dice and add 2 to the result</li>
+            <li>d8-3 - Will roll a 10-sided dice and subtract 3 from the result</li>
+        </ul>
+        
+        <button type="button" class="btn btn-danger" id="helpCloseBtn">X</button>
+    </div>
+    <!-- END HELP POP UP -->
 
     <script>
 
     const SCREEN_TRANSITION_SPEED = 600;
 
     var socket = io.connect("http://45.62.224.100:8081");
+    
+    var helpPopUpShown = false;
  
     $(document).ready(function()
     {
@@ -113,6 +139,16 @@
         {
             sendPartyMessage();
         });
+        
+        $("#infoBtn").click(function (event)
+        {
+            showHelpPopup();
+        });
+        
+        $("#helpCloseBtn").click(function (event)
+        {
+           hideHelpPopup(); 
+        });
 
         resizeMessagesLog();
         $( window ).bind("resize", function()
@@ -131,6 +167,32 @@
 
             document.getElementById('inputMessage').value = "";
         }
+    }
+    
+    function showHelpPopup()
+    {
+        $("#popUpHelp").css({display: "block"});
+        $("#overlay").css({display: "block"});
+        
+        var blurAmountStr = "blur(1px)";
+        $("#container").css({filter: blurAmountStr, "-webkit-filter": blurAmountStr, "-moz-filter": blurAmountStr, "-o-filter": blurAmountStr, "-ms-filter": blurAmountStr});
+        
+        setTimeout(addContainerClickBind, 1000);
+    }
+    
+    function addContainerClickBind()
+    {
+        $("#overlay").bind("click", hideHelpPopup)
+    }
+    
+    function hideHelpPopup()
+    {
+        $("#popUpHelp").css({display: "none"});
+        $("#overlay").css({display: "none"});
+        
+        $("#container").css({filter: '', "-webkit-filter": '', "-moz-filter": '', "-o-filter": '', "-ms-filter": ''});
+        
+        $("#overlay").unbind("click", hideHelpPopup);
     }
 
     /**
@@ -226,7 +288,7 @@
         {
             rollObj = rolls[rollsIndex];
             sum = 0;
-            rollsStr = "<strong>" + who + "</strong> rolled " + rollObj.rolls[0];
+            rollsStr = "<span class=\"systemMessageFont\">" + who + " rolled " + rollObj.rolls[0];
             sum += rollObj.rolls[0];
             
             for(var sameRollsIndex = 1;sameRollsIndex < rollObj.rolls.length;sameRollsIndex++)
@@ -245,7 +307,14 @@
                 sum += rollObj.modifier;
             }
             
-            rollsStr = rollsStr.concat(" for a sum of " + sum + "<br>");
+            if(rollObj.rolls.length > 1 || rollObj.modifier != 0)
+            {
+                rollsStr = rollsStr.concat(" for a sum of " + sum + "</span><br>");
+            }
+            else
+            {
+                rollsStr = rollsStr.concat("</span><br>");
+            }
             
             $("#partyMessages").append(rollsStr);
         }
