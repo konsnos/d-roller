@@ -17,6 +17,11 @@
 	margin: 0px;
 }
 
+#submitRoomCreation
+{
+    margin: 5px;    
+}
+
 .screen
 {
 	position: absolute;

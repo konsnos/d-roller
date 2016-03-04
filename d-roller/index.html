@@ -32,6 +32,9 @@
             <button id="playScreenBack" class="backButton">Back</button>
             <div id="partyMessages" class="messagesLog">
             <!-- Here the messages are printed. -->
+            a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>
+            a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>
+            a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>
             </div>
 
             <div class="inputMessage" id="chat">
@@ -82,9 +85,10 @@
     const SCREEN_TRANSITION_SPEED = 600;
 
     var socket = io.connect("http://45.62.224.100:8081");
+    var partyMsgsElem = document.getElementById("partyMessages");
+    /** If true on received message scroll down me chat to show them instantly. */
+    var scrollDownMessages = false;
     
-    var helpPopUpShown = false;
- 
     $(document).ready(function()
     {
     	$("#submitRoomCreation").click(function (event)
@@ -205,6 +209,32 @@
         $("#partyMessages").css({top: offsetHeight});
         $("#partyMessages").height(endHeight - offsetHeight);
     }
+    
+    /**
+     * Checks if messages scroll is already scrolled down so it returns true to scroll to show the new messages.
+     * @returns True to scroll on new message. False if not.
+     */
+    function checkToScrollOnNewMessage()
+    {
+        if(partyMsgsElem.scrollTop + partyMsgsElem.clientHeight == partyMsgsElem.scrollHeight)
+        {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Scrolls message log to the last message.
+     */
+    function scrollDownMessageLog()
+    {
+        if(scrollDownMessages)
+        {
+            partyMsgsElem.scrollTop = partyMsgsElem.scrollHeight;
+        }
+        
+        scrollDownMessages = false;
+    }
 
     function rejectHomeScreen()
     {
@@ -257,26 +287,44 @@
         $("#playScreen").animate({left: '0%'}, SCREEN_TRANSITION_SPEED);
 
         document.getElementById("homeScreenWarnings").innerHTML = "";
+        
+        scrollDownMessageLog();
     });
 
     socket.on('partyMsg', function(who, msg)
     {
+        scrollDownMessages = checkToScrollOnNewMessage();
+        
         $("#partyMessages").append("<strong>" + who + ":</strong> " + msg + "<br>");
+        
+        scrollDownMessageLog();
     });
     
     socket.on('systemPartyMsg', function(msg)
     {
+        scrollDownMessages = checkToScrollOnNewMessage();
+        
         $("#partyMessages").append("<strong>" + who + ":</strong> " + msg + "<br>");
+        
+        scrollDownMessageLog();
     });
     
     socket.on('partyMemberLeft', function(who)
     {
+        scrollDownMessages = checkToScrollOnNewMessage();
+        
         $("#partyMessages").append("<strong>" + who + "</strong> left<br>");
+        
+        scrollDownMessageLog();
     });
     
     socket.on('partyMemberJoined', function(who)
     {
+        scrollDownMessages = checkToScrollOnNewMessage();
+        
         $("#partyMessages").append("<strong>" + who + "</strong> joined in<br>");
+        
+        scrollDownMessageLog();
     });
     
     socket.on('rolls', function(who, rolls)
@@ -316,7 +364,11 @@
                 rollsStr = rollsStr.concat("</span><br>");
             }
             
+            scrollDownMessages = checkToScrollOnNewMessage();
+            
             $("#partyMessages").append(rollsStr);
+            
+            scrollDownMessageLog();
         }
     });
     </script>
