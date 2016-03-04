@@ -1,7 +1,14 @@
 /** Maximum times a dice can be rolled. (Done to reduce spam of the chat room. No sane person would need more.) */
 const MAX_DICE_TIMES = 20;
 
+/** Used for communication with the server. */
 const io = require('socket.io')(8081);
+/** Used to log information about the app running. */
+var winston = require('winston');
+/** App version. */
+const version = "1.0.2";
+
+winston.add(winston.transports.File, { filename: '/home/user/nodejs_projects/logs/dice_roller_' + new Date().getTime() + '.log' });
 
 /** Player characters. {name, party} */
 var pcs = {};
@@ -284,9 +291,11 @@ function debugObject(objectVar)
 function printLog(message)
 {
     console.log(message);
+    winston.log('info', message);
 }
 
 function printWarning(message)
 {
     console.log("Warning: " + message);
+    winston.log('warn', message);
 }
