@@ -6,7 +6,7 @@ const io = require('socket.io')(8081);
 /** Used to log information about the app running. */
 var winston = require('winston');
 /** App version. */
-const version = "1.0.2";
+const version = "1.0.3";
 
 winston.add(winston.transports.File, { filename: '/home/user/nodejs_projects/logs/dice_roller_' + new Date().getTime() + '.log' });
 
@@ -87,7 +87,7 @@ io.sockets.on('connection', function(client)
             
             io.to(partyName).emit("partyMsg", pcName, newMessage);
             
-            checkRollsInText(newMessage, pcName, partyName);
+            checkRollsInText(newMessage.toLowerCase(), pcName, partyName);
         }
     });
 
@@ -133,7 +133,7 @@ function removePCFromParty(clientId, partyName)
 /**
  * Checks text if it contains any possible rolls, which checks in function getRoll.
  * If rolls are returned it sends an array of them back to the party.
- * @param text  The string to check for rolls.
+ * @param text  The string to check for rolls. Must be lowercase.
  * @param pcName    The name of the player character that makes the rolls
  * @param partyName The party name to send the rolls to.
  */
@@ -141,17 +141,21 @@ function checkRollsInText(text, pcName, partyName)
 {
     var rolls = [];
 	var dIndex = 0;
+    var rollObjArr = [];
     var rollObj= {};
-    var textLC = text.toLowerCase();
-	while((dIndex = textLC.indexOf('d', dIndex)) != -1)	// Search for d
+	while((dIndex = text.indexOf('d', dIndex)) != -1)	// Search for d
 	{
-		rollObj = getRoll(dIndex, text);
+		rollObjArr = getRoll(dIndex, text, true);
+        rollObj = rollObjArr[0];
 		if(rollObj.success)
 		{
 			rolls.push(rollObj);
+            dIndex = rollObjArr[1];
 		}
-		
-		dIndex++;
+		else
+        {
+            dIndex++;
+        }
 	}
     
     if(rolls.length > 0)
@@ -162,94 +166,160 @@ function checkRollsInText(text, pcName, partyName)
 }
 
 /**
+ * Checks how many consequative numbers there are after the index to the text, parses them and returns them.
+ * @returns An array containing the number found and the end index.
+ */
+function getNumbers(forward, index, text)
+{
+	// The end index is the start index if the search is done backwards.
+  var endIndex = index;
+  var aNumber = 0;
+  
+  if(forward)
+  {
+  	endIndex = index;
+  
+    while(!isNaN(parseInt(text.substr(endIndex, 1))))
+    {
+      endIndex++;
+    }
+  
+    if(endIndex > index)
+    {
+      aNumber = parseInt(text.substring(index, endIndex));
+    }
+  }
+  else
+  {
+  	endIndex = index - 1;
+  	if((index+1) > 0)
+    {
+      while(!isNaN(parseInt(text.charAt(endIndex))))
+      {
+        endIndex--;
+      }
+    }
+    
+    if(endIndex < index-1)
+    {
+    	aNumber = parseInt(text.substring(endIndex+1, index));
+    }
+  }
+  
+  return [aNumber, endIndex];
+}
+
+/**
  * Checks in given text the index passed for a roll. The roll may or may not exist.
  * @param dIndex    An integer of the index the roll was detected. This is a 'd'.
  * @param text  The text to parse for the roll.
+ * @param positive  This is supplied
  * @returns An object with the roll information. Key 'success' will be false if there is no roll.
  */
-function getRoll(dIndex, text)
+function getRoll(dIndex, text, positive)
 {
-    var rollObj = {success:false};
-    // Check if dice roll
-    var diceIndexStart = dIndex+1;
-    var diceIndexEnd = dIndex+1;
-    while(!isNaN(parseInt(text.substr(diceIndexEnd, 1))))
-    {
-        diceIndexEnd++;
-    }
+		var rollObj = {success:false};
     
-    if(diceIndexEnd > diceIndexStart)	// check if is roll
-    {
-        // Check times rolled
-        var maxRoll = parseInt(text.substring(diceIndexStart, diceIndexEnd));
-        var times = 1;
-        
-        var timesIndexEnd = dIndex - 1;
-        var timesIndexStart = dIndex - 1;
-        
-        while(diceIndexStart > 0 && !isNaN(parseInt(text.charAt(timesIndexStart))))
-        {
-            timesIndexStart--;
-        }
-        
-        if(timesIndexStart != timesIndexEnd)
-        {
-            times = parseInt(text.substring(timesIndexStart, timesIndexEnd+1));
-        }
-        
-        // Check for modifiers. check is done only at suffixes.
-        var modifierCharIndex = diceIndexEnd;
-        var modifierNumber = 0;
-        while(modifierCharIndex < text.length)
-        {
-            var char = text.charAt(modifierCharIndex);
-            
-            if(char == '+' || char == '-')	// there is a modifier!
+    var maxRollArr = getNumbers(true, dIndex+1, text);
+		
+		if(maxRollArr[0] != 0)	// check if is roll
+		{
+			// Check times rolled
+			var maxRoll = maxRollArr[0];
+			var times = 1;
+      
+      var timesArr = getNumbers(false, dIndex, text);
+			
+			if(timesArr[0] != 0)
+			{
+				times = timesArr[0];
+			}
+			
+			// Check for modifiers. check is done only at suffixes.
+			var modifierCharIndex = maxRollArr[1];
+			var modifierNumber = 0;
+      var modifierRollsArr = [{success:false}];
+			while(modifierCharIndex < text.length)
+			{
+				var char = text.charAt(modifierCharIndex);
+				
+				if(char == '+' || char == '-')	// there is a modifier!
+				{
+        	var modifierSign = (char == '+')?1:-1;
+					var numberIndex = modifierCharIndex+1;
+					while(numberIndex < text.length)	// Does a number follow?
+					{
+						var numberChar = text.charAt(numberIndex);
+						if(!isNaN(parseInt(numberChar)))	// There is a number! Get it!
+						{
+							//modifierNumber = parseInt(text.substr(numberIndex).match(/\d+/)[0]);
+              var modArr = getNumbers(true, numberIndex, text);
+              
+              if(text.charAt(modArr[1]) == 'd')
+              {
+                modifierRollsArr = getRoll(modArr[1], text, modifierSign > 0);
+              }
+              
+              if(!modifierRollsArr[0].success)
+              {
+              	modifierNumber = modArr[0] * modifierSign;
+              }
+							break;
+						}
+            else if(numberChar == 'd')
             {
-                var numberIndex = modifierCharIndex+1;
-                while(numberIndex < text.length)	// Does a number follow?
-                {
-                    var numberChar = text.charAt(numberIndex)
-                    if(!isNaN(parseInt(numberChar)))	// There is a number! Get it!
-                    {
-                        modifierNumber = parseInt(text.substr(numberIndex).match(/\d+/)[0]);
-                        if(char == '-')
-                            modifierNumber *= -1;
-                        break;
-                    }
-                    else	// No modifiers it seems
-                    {
-                        break;
-                    }
-                }
-                break;	// No need to search further.
+              modifierRollsArr = getRoll(numberIndex, text, modifierSign > 0);
+              
+              break;
             }
-            else	// No modifier.
-            {
-                break;
-            }
-        }
+						else	// No modifiers it seems
+						{
+							break;
+						}
+					}
+					break;	// No need to search further.
+				}
+				else	// No modifier.
+				{
+					break;
+				}
+			}
+			
+			// Show rolls
+			rollObj.rolls = multipleRolls(times, maxRoll, positive);
+      var lastIndex;
+      if(modifierRollsArr[0].success)
+      {
+      	rollObj.rolls = rollObj.rolls.concat(modifierRollsArr[0].rolls);
+        rollObj.modifier = modifierRollsArr[0].modifier;
         
-        // Show rolls
-        rollObj.rolls = multipleRolls(times, maxRoll);
-        rollObj.modifier = modifierNumber;
-        rollObj.success = true;
-    }
-    
-    return rollObj;
+        lastIndex = modifierRollsArr[1];
+      }
+      else
+      {
+      	rollObj.modifier = modifierNumber;
+        
+        lastIndex = maxRollArr[1];
+      }
+			rollObj.success = true;
+		}
+		
+		return [rollObj, lastIndex];
 }
 
 /**
  * Rolls multiple dice.
+ * param positive	If the rolls are positive or negative numbers they are modified accordingly. This is used for modifiers.
  * @returns An array of the result of all dice cast.
  */
-function multipleRolls(times, maxRoll)
+function multipleRolls(times, maxRoll, positive)
 {
     times = Math.min(MAX_DICE_TIMES, times);
 
     var results = [];
-    for (var i = times - 1; i >= 0; i--) {
-        results.push(roll(maxRoll));
+    for (var i = times - 1; i >= 0; i--) 
+    {
+        results.push(roll(maxRoll) * (positive?1:-1));
     }
 
     return results;

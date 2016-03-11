@@ -8,7 +8,6 @@ d Roller is built upon socket.io for networking capabilities and jQuery and boot
 
 ## TODO ##
 * Add fudge dice.
-* Modifiers may be dice rolls.
 
 ## Contact ##
 Konstantinos Egkarchos - konsnosl@gmail.com
