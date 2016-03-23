@@ -32,9 +32,6 @@
             <button id="playScreenBack" class="backButton">Back</button>
             <div id="partyMessages" class="messagesLog">
             <!-- Here the messages are printed. -->
-            a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>
-            a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>
-            a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>a<br>
             </div>
 
             <div class="inputMessage" id="chat">
@@ -63,18 +60,22 @@
         <ul>
             <li>d6 - Will roll a 6-sided dice</li>
             <li>d20 - Will roll a 20-sided dice</li>
-            <li>d87 - Will roll a 87-sided dice (you can use as many sides as you like)</li> 
+            <li>d87 - Will roll a 87-sided dice (you can use as many sides as you like)</li>
+            <li>df - Will roll a fudge dice for a result of +1, 0 or -1</li>
         </ul>
         <h4>Multiple Rolls</h4><hr>
         <ul>
             <li>2d12 - Will roll a 12-sided dice 2 times, and will show the sum of the rolls</li>
             <li>5d10 - Will roll a 12-sided dice 5 times, and will show the sum of the rolls</li>
+            <li>4df - Will roll a fudge dice 4 times, and will show the sum of the rolls</li>
         </ul>
         <h4>Modifiers</h4><hr>
         <ul>
-            <li>d10+2 - Will roll a 10-sided dice and add 2 to the result</li>
-            <li>d8-3 - Will roll a 10-sided dice and subtract 3 from the result</li>
+            <li>d8-3 - Will roll a 8-sided dice and subtract 3 from the result</li>
+            <li>4df+2 - Will roll a fudge dice 4 times and add 2 to the result</li>
+            <li>d10+d8 - Will roll a 10-sided dice and add another 8-sided dice to the result</li>
         </ul>
+        You can even add more modifiers!<br>
         
         <button type="button" class="btn btn-danger" id="helpCloseBtn">X</button>
     </div>
@@ -342,7 +343,10 @@
             
             for(var sameRollsIndex = 1;sameRollsIndex < rollObj.rolls.length;sameRollsIndex++)
             {
-                rollsStr = rollsStr.concat("+" + rollObj.rolls[sameRollsIndex]);
+                if(rollObj.rolls[sameRollsIndex] < 0)
+                    rollsStr = rollsStr.concat(rollObj.rolls[sameRollsIndex]);
+                else
+                    rollsStr = rollsStr.concat("+" + rollObj.rolls[sameRollsIndex]);
                 sum += rollObj.rolls[sameRollsIndex];
             }
             

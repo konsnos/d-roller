@@ -6,8 +6,9 @@ const io = require('socket.io')(8081);
 /** Used to log information about the app running. */
 var winston = require('winston');
 /** App version. */
-const version = "1.0.3";
+const version = "1.0.4";
 
+/** TODO: Path should become relative. */
 winston.add(winston.transports.File, {
     filename: '/home/user/nodejs_projects/logs/dice_roller_' + new Date().getTime() + '.log'
 });
@@ -193,7 +194,15 @@ function getRoll(dIndex, text, positive) {
         success: false
     };
 
-    var maxRollArr = getNumbers(true, dIndex + 1, text);
+    // Check if the rolls is done with fudge dice
+    var isFudge = text[dIndex + 1] == 'f';
+
+    var maxRollArr
+    if (isFudge) {
+        maxRollArr = [6, dIndex + 2];
+    } else {
+        maxRollArr = getNumbers(true, dIndex + 1, text);
+    }
 
     if (maxRollArr[0] != 0) // check if is roll
     {
@@ -254,6 +263,9 @@ function getRoll(dIndex, text, positive) {
 
         // Show rolls
         rollObj.rolls = multipleRolls(times, maxRoll, positive);
+        if (isFudge) {
+            rollObj.rolls = modifyToFudgeRolls(rollObj.rolls);
+        }
         var lastIndex;
         if (modifierRollsArr[0].success) {
             rollObj.rolls = rollObj.rolls.concat(modifierRollsArr[0].rolls);
@@ -269,6 +281,34 @@ function getRoll(dIndex, text, positive) {
     }
 
     return [rollObj, lastIndex];
+}
+
+/**
+ * Modifies d6 rolls to df.
+ * 5, 6 become +1, 3,4 become +0, 1,2 become -1.
+ */
+function modifyToFudgeRolls(rolls) {
+    for (var i = rolls.length - 1; i >= 0; i--) {
+        switch (rolls[i]) {
+            case 1:
+            case 2:
+                rolls[i] = -1;
+                break;
+            case 3:
+            case 4:
+                rolls[i] = 0;
+                break;
+            case 5:
+            case 6:
+                rolls[i] = 1;
+                break;
+            default:
+                printWarning("Uknown dice roll for fudge: " + rolls[i]);
+                break;
+        }
+    }
+
+    return rolls;
 }
 
 /**
