@@ -1,0 +1,270 @@
+<!doctype html>
+<html>
+
+<head>
+    <script src="../d-roller/js/jquery-2.2.1.js"></script>
+</head>
+
+<body>
+    <input type="text" id="bunchOfText" value="3d10-2, d20, 4df+2, 2d10+d20+3d4" />
+    <button id="calculateBtn" onclick="checkTextForRolls()">Calculate</button>
+    <button id="clearBtn" onclick="clearOutput()">Clear</button>
+    <div id="output">
+
+    </div>
+
+    <script>
+        /** Maximum times a dice can be rolled. (Done to reduce spam of the chat room. No sane person would need more.) */
+        const MAX_DICE_TIMES = 20;
+        
+        const IGNORE_ABORT_CHARACTERS = ['+','-',',',' '];
+
+        function clearOutput() {
+            document.getElementById("output").innerHTML = "";
+        }
+
+        function checkTextForRolls() {
+            var text = document.getElementById("bunchOfText").value;
+            checkRollsInText(text.toLowerCase());
+        }
+
+        function checkRollsInText(text) {
+            var dIndex = 0;
+            while ((dIndex = text.indexOf('d', dIndex)) != -1) // Search for d
+            {
+                var rollObjArr = getRoll(dIndex, text, true);
+                var rollObj = rollObjArr[0];
+                if (rollObj.success) {
+                    $("#output").append("Rolled " + rollObj.rolls.length + " time(s): ");
+                    $("#output").append(rollObj.rolls[0]);
+
+                    var sum = rollObj.rolls[0];
+
+                    for (var i = 1; i < rollObj.rolls.length; i++) {
+                        sum += rollObj.rolls[i];
+                        $("#output").append("+" + rollObj.rolls[i]);
+                    }
+
+                    // Add modifier
+                    sum += rollObj.modifier;
+                    if (rollObj.modifier != 0) {
+                        if (rollObj.modifier < 0)
+                            $("#output").append(" " + rollObj.modifier);
+                        else
+                            $("#output").append(" +" + rollObj.modifier);
+                    }
+
+                    $("#output").append(". Sum: " + sum);
+
+                    $("#output").append("<br>");
+
+                    dIndex = rollObjArr[1];
+                } else {
+                    dIndex++;
+                }
+            }
+
+            $("#output").append("<br>");
+        }
+
+        /**
+         * Checks how many consequative numbers there are after the index to the text, parses them and returns them.
+         * @returns An array containing the number found and the end index.
+         */
+        function getNumbers(forward, index, text) {
+            // The end index is the start index if the search is done backwards.
+            var endIndex = index;
+            var aNumber = 0;
+
+            if (forward) {
+                endIndex = index;
+
+                // Check if there are numbers after the character index
+                while (!isNaN(parseInt(text[endIndex]))) {
+                    endIndex++;
+                }
+
+                if (endIndex > index) {
+                    aNumber = parseInt(text.substring(index, endIndex));
+                }
+            } else {
+                endIndex = index - 1;
+                if ((index + 1) > 0) {
+                    while (!isNaN(parseInt(text[endIndex]))) {
+                        endIndex--;
+                    }
+                }
+
+                if (endIndex < index - 1) {
+                    aNumber = parseInt(text.substring(endIndex + 1, index));
+                }
+            }
+
+            return [aNumber, endIndex];
+        }
+
+        function getRoll(dIndex, text, positive) {
+            var rollObj = {
+                success: false
+            };
+
+            // Check if the rolls is done with fudge dice
+            var isFudge = text[dIndex + 1] == 'f';
+
+            var maxRollArr;
+            if (isFudge) {
+                maxRollArr = [6, dIndex + 2];
+            } else {
+                maxRollArr = getNumbers(true, dIndex + 1, text);
+            }
+
+            if (maxRollArr[0] != 0) // check if is roll
+            {
+                // Ensure that a suffix letter doesn't exist and is not part of a word.
+                // This is not done for modifiers as it would be overkill. If modifiers are added then it sure is a roll.
+                if (maxRollArr[1] < text.length)
+                {
+                    if(IGNORE_ABORT_CHARACTERS.indexOf(text[maxRollArr[1]]) == -1) {
+                        return [rollObj];
+                    }
+                }
+
+                // Check times rolled
+                var maxRoll = maxRollArr[0];
+                var times = 1;
+
+                var timesArr = getNumbers(false, dIndex, text);
+
+                if (timesArr[0] != 0) {
+                    times = timesArr[0];
+                }
+                
+                // Ensure that a preffix letter don't exist and is not part of a word.
+                if(timesArr[1] >= 0)
+                {
+                    if(IGNORE_ABORT_CHARACTERS.indexOf(text[timesArr[1]]) == -1) {
+                        return [rollObj];
+                    }
+                }
+
+                // Check for modifiers. check is done only at suffixes.
+                var modifierCharIndex = maxRollArr[1];
+                var modifierNumber = 0;
+                var modifierRollsArr = [{
+                    success: false
+                }];
+                while (modifierCharIndex < text.length) {
+                    var char = text.charAt(modifierCharIndex);
+
+                    if (char == '+' || char == '-') // there is a modifier!
+                    {
+                        var modifierSign = (char == '+') ? 1 : -1;
+                        var numberIndex = modifierCharIndex + 1;
+                        while (numberIndex < text.length) // Does a number follow?
+                        {
+                            var numberChar = text.charAt(numberIndex);
+                            if (!isNaN(parseInt(numberChar))) // There is a number! Get it!
+                            {
+                                //modifierNumber = parseInt(text.substr(numberIndex).match(/\d+/)[0]);
+                                var modArr = getNumbers(true, numberIndex, text);
+
+                                if (text[modArr[1]] == 'd') {
+                                    modifierRollsArr = getRoll(modArr[1], text, modifierSign > 0);
+                                }
+
+                                if (!modifierRollsArr[0].success) {
+                                    modifierNumber = modArr[0] * modifierSign;
+                                }
+                                break;
+                            } else if (numberChar == 'd') {
+                                modifierRollsArr = getRoll(numberIndex, text, modifierSign > 0);
+
+                                break;
+                            } else // No modifiers it seems
+                            {
+                                break;
+                            }
+                        }
+                        break; // No need to search further.
+                    } else // No modifier.
+                    {
+                        break;
+                    }
+                }
+
+                // Show rolls
+                rollObj.rolls = multipleRolls(times, maxRoll, positive);
+                if (isFudge) {
+                    rollObj.rolls = modifyToFudgeRolls(rollObj.rolls);
+                }
+                var lastIndex;
+                if (modifierRollsArr[0].success) {
+                    rollObj.rolls = rollObj.rolls.concat(modifierRollsArr[0].rolls);
+                    rollObj.modifier = modifierRollsArr[0].modifier;
+
+                    lastIndex = modifierRollsArr[1];
+                } else {
+                    rollObj.modifier = modifierNumber;
+
+                    lastIndex = maxRollArr[1];
+                }
+                rollObj.success = true;
+                return [rollObj, lastIndex];
+            }
+
+            return [rollObj];
+        }
+
+        /**
+         * Modifies d6 rolls to df.
+         * 5, 6 become +1, 3,4 become +0, 1,2 become -1.
+         */
+        function modifyToFudgeRolls(rolls) {
+            for (var i = rolls.length - 1; i >= 0; i--) {
+                switch (rolls[i]) {
+                    case 1:
+                    case 2:
+                        rolls[i] = -1;
+                        break;
+                    case 3:
+                    case 4:
+                        rolls[i] = 0;
+                        break;
+                    case 5:
+                    case 6:
+                        rolls[i] = 1;
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            return rolls;
+        }
+
+        /**
+         * Rolls multiple dice.
+         * param positive	If the rolls are positive or negative numbers they are modified accordingly. This is used for modifiers.
+         * @returns An array of the result of all dice cast.
+         */
+        function multipleRolls(times, maxRoll, positive) {
+            times = Math.min(MAX_DICE_TIMES, times);
+
+            var results = [];
+            for (var i = times - 1; i >= 0; i--) {
+                results.push(roll(maxRoll) * (positive ? 1 : -1));
+            }
+
+            return results;
+        }
+
+        /**
+         * @returns A random roll from 1 to the maxRoll parameter.
+         */
+        function roll(maxRoll) {
+            return Math.floor((Math.random() * maxRoll) + 1);
+        }
+    </script>
+</body>
+
+</html>

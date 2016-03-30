@@ -1,3 +1,6 @@
+1.0.5
+Fixed issue with rolls being inside text. These shouldn't be parsed as rolls.
+
 1.0.4
 Added fudge dice.
 

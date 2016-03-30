@@ -1,12 +1,15 @@
 /** Maximum times a dice can be rolled. (Done to reduce spam of the chat room. No sane person would need more.) */
 const MAX_DICE_TIMES = 20;
 
+/** If these characters exist before or after the roll don't abort the roll. Otherwise it's probaly a text. */
+const IGNORE_ABORT_CHARACTERS = ['+','-',',',' '];
+
 /** Used for communication with the server. */
 const io = require('socket.io')(8081);
 /** Used to log information about the app running. */
 var winston = require('winston');
 /** App version. */
-const version = "1.0.4";
+const version = "1.0.5";
 
 /** TODO: Path should become relative. */
 winston.add(winston.transports.File, {
@@ -206,6 +209,15 @@ function getRoll(dIndex, text, positive) {
 
     if (maxRollArr[0] != 0) // check if is roll
     {
+        // Ensure that a suffix letter doesn't exist and is not part of a word.
+        // This is not done for modifiers as it would be overkill. If modifiers are added then it sure is a roll.
+        if (maxRollArr[1] < text.length)
+        {
+            if(IGNORE_ABORT_CHARACTERS.indexOf(text[maxRollArr[1]]) == -1) {
+                return [rollObj];
+            }
+        }
+                
         // Check times rolled
         var maxRoll = maxRollArr[0];
         var times = 1;
@@ -214,6 +226,14 @@ function getRoll(dIndex, text, positive) {
 
         if (timesArr[0] != 0) {
             times = timesArr[0];
+        }
+        
+        // Ensure that a preffix letter don't exist and is not part of a word.
+        if(timesArr[1] >= 0)
+        {
+            if(IGNORE_ABORT_CHARACTERS.indexOf(text[timesArr[1]]) == -1) {
+                return [rollObj];
+            }
         }
 
         // Check for modifiers. check is done only at suffixes.
@@ -356,11 +376,11 @@ function debugObject(objectVar) {
 }
 
 function printLog(message) {
-    console.log(message);
+    //console.log(message);
     winston.log('info', message);
 }
 
 function printWarning(message) {
-    console.log("Warning: " + message);
+    //console.log("Warning: " + message);
     winston.log('warn', message);
 }
