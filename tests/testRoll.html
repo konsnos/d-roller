@@ -153,38 +153,18 @@
                 var modifierRollsArr = [{
                     success: false
                 }];
+                
                 while (modifierCharIndex < text.length) {
                     var char = text.charAt(modifierCharIndex);
 
                     if (char == '+' || char == '-') // there is a modifier!
                     {
+                        console.log("Found modifier!");
                         var modifierSign = (char == '+') ? 1 : -1;
                         var numberIndex = modifierCharIndex + 1;
-                        while (numberIndex < text.length) // Does a number follow?
-                        {
-                            var numberChar = text.charAt(numberIndex);
-                            if (!isNaN(parseInt(numberChar))) // There is a number! Get it!
-                            {
-                                //modifierNumber = parseInt(text.substr(numberIndex).match(/\d+/)[0]);
-                                var modArr = getNumbers(true, numberIndex, text);
-
-                                if (text[modArr[1]] == 'd') {
-                                    modifierRollsArr = getRoll(modArr[1], text, modifierSign > 0);
-                                }
-
-                                if (!modifierRollsArr[0].success) {
-                                    modifierNumber = modArr[0] * modifierSign;
-                                }
-                                break;
-                            } else if (numberChar == 'd') {
-                                modifierRollsArr = getRoll(numberIndex, text, modifierSign > 0);
-
-                                break;
-                            } else // No modifiers it seems
-                            {
-                                break;
-                            }
-                        }
+                        
+                        modifierRollsArr = getModifierRoll(numberIndex, text, modifierSign > 0);
+                        
                         break; // No need to search further.
                     } else // No modifier.
                     {
@@ -212,6 +192,69 @@
                 return [rollObj, lastIndex];
             }
 
+            return [rollObj];
+        }
+        
+        function getModifierRoll(numberIndex, text, positive) {
+            var rollObj = {
+                success: false
+            };
+            var modifierRollsArr = [{
+                success: false
+            }];
+            
+            while (numberIndex < text.length) // Does a number follow?
+            {
+                var numberChar = text.charAt(numberIndex);
+                if (!isNaN(parseInt(numberChar))) // There is a number! Get it!
+                {
+                    //modifierNumber = parseInt(text.substr(numberIndex).match(/\d+/)[0]);
+                    var modArr = getNumbers(true, numberIndex, text);
+                    var lastIndex = modArr[1];
+                    console.log("Modifier: " + modArr[0]);
+                    console.log("Modifier last letter: " + text[modArr[1]]);
+
+                    // check if modifier is a dice roll.
+                    if (text[modArr[1]] == 'd') {
+                        var diceRollObj = getRoll(modArr[1], text, positive);
+                        if(diceRollObj[0].success) {
+                            return [diceRollObj[0], diceRollObj[1]];
+                        }
+                    }
+                    
+                    // If not a dice roll just get the number
+                    rollObj.success = true;
+                    rollObj.rolls = [];
+                    rollObj.modifier = modArr[0] * (positive ? 1 : -1);
+                    console.log("Assigned modifier: " + rollObj.modifier);
+                    // and search for more modifiers.
+                    if(text[modArr[1]] == '+' || text[modArr[1]] == '-') {
+                        var modifierSign = (text[modArr[1]] == '+') ? 1 : -1;
+                        modifierRollsArr = getModifierRoll(modArr[1] + 1, text, modifierSign > 0);
+                        
+                        if(modifierRollsArr[0].success)
+                        {
+                            rollObj.rolls = modifierRollsArr[0].rolls;
+                            rollObj.modifier += modifierRollsArr[0].modifier;
+                            lastIndex = modifierRollsArr[1];
+                        }
+                    }
+                    
+                    return [rollObj, lastIndex];
+                    break;
+                } else if (numberChar == 'd') {
+                    console.log("Found dice modifier!");
+                    rollObj = getRoll(numberIndex, text, positive);
+                    
+                    return rollObj;
+                    break;
+                } else // No modifiers it seems
+                {
+                    console.log("No rest modifiers");
+                    break;
+                }
+            }
+            
             return [rollObj];
         }
 
