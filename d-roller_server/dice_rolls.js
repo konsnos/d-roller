@@ -9,7 +9,7 @@ const io = require('socket.io')(8081);
 /** Used to log information about the app running. */
 var winston = require('winston');
 /** App version. */
-const version = "1.0.5";
+const version = "1.0.6";
 
 /** TODO: Path should become relative. */
 winston.add(winston.transports.File, {
@@ -200,7 +200,7 @@ function getRoll(dIndex, text, positive) {
     // Check if the rolls is done with fudge dice
     var isFudge = text[dIndex + 1] == 'f';
 
-    var maxRollArr
+    var maxRollArr;
     if (isFudge) {
         maxRollArr = [6, dIndex + 2];
     } else {
@@ -242,6 +242,7 @@ function getRoll(dIndex, text, positive) {
         var modifierRollsArr = [{
             success: false
         }];
+        
         while (modifierCharIndex < text.length) {
             var char = text.charAt(modifierCharIndex);
 
@@ -249,31 +250,9 @@ function getRoll(dIndex, text, positive) {
             {
                 var modifierSign = (char == '+') ? 1 : -1;
                 var numberIndex = modifierCharIndex + 1;
-                while (numberIndex < text.length) // Does a number follow?
-                {
-                    var numberChar = text.charAt(numberIndex);
-                    if (!isNaN(parseInt(numberChar))) // There is a number! Get it!
-                    {
-                        //modifierNumber = parseInt(text.substr(numberIndex).match(/\d+/)[0]);
-                        var modArr = getNumbers(true, numberIndex, text);
-
-                        if (text.charAt(modArr[1]) == 'd') {
-                            modifierRollsArr = getRoll(modArr[1], text, modifierSign > 0);
-                        }
-
-                        if (!modifierRollsArr[0].success) {
-                            modifierNumber = modArr[0] * modifierSign;
-                        }
-                        break;
-                    } else if (numberChar == 'd') {
-                        modifierRollsArr = getRoll(numberIndex, text, modifierSign > 0);
-
-                        break;
-                    } else // No modifiers it seems
-                    {
-                        break;
-                    }
-                }
+                
+                modifierRollsArr = getModifierRoll(numberIndex, text, modifierSign > 0);
+                
                 break; // No need to search further.
             } else // No modifier.
             {
@@ -298,9 +277,69 @@ function getRoll(dIndex, text, positive) {
             lastIndex = maxRollArr[1];
         }
         rollObj.success = true;
+        return [rollObj, lastIndex];
     }
 
-    return [rollObj, lastIndex];
+    return [rollObj];
+}
+
+/**
+ * Checks if there is a modifier roll and parses it. If it's a dice roll calls the appropriate function to handle it.
+ */
+function getModifierRoll(numberIndex, text, positive) {
+    var rollObj = {
+        success: false
+    };
+    var modifierRollsArr = [{
+        success: false
+    }];
+    
+    while (numberIndex < text.length) // Does a number follow?
+    {
+        var numberChar = text.charAt(numberIndex);
+        if (!isNaN(parseInt(numberChar))) // There is a number! Get it!
+        {
+            //modifierNumber = parseInt(text.substr(numberIndex).match(/\d+/)[0]);
+            var modArr = getNumbers(true, numberIndex, text);
+            var lastIndex = modArr[1];
+
+            // check if modifier is a dice roll.
+            if (text[modArr[1]] == 'd') {
+                var diceRollObj = getRoll(modArr[1], text, positive);
+                if(diceRollObj[0].success) {
+                    return [diceRollObj[0], diceRollObj[1]];
+                }
+            }
+            
+            // If not a dice roll just get the number
+            rollObj.success = true;
+            rollObj.rolls = [];
+            rollObj.modifier = modArr[0] * (positive ? 1 : -1);
+            // and search for more modifiers.
+            if(text[modArr[1]] == '+' || text[modArr[1]] == '-') {
+                var modifierSign = (text[modArr[1]] == '+') ? 1 : -1;
+                modifierRollsArr = getModifierRoll(modArr[1] + 1, text, modifierSign > 0);
+                
+                if(modifierRollsArr[0].success)
+                {
+                    rollObj.rolls = modifierRollsArr[0].rolls;
+                    rollObj.modifier += modifierRollsArr[0].modifier;
+                    lastIndex = modifierRollsArr[1];
+                }
+            }
+            
+            return [rollObj, lastIndex];
+        } else if (numberChar == 'd') {
+            rollObj = getRoll(numberIndex, text, positive);
+            
+            return rollObj;
+        } else // No modifiers it seems
+        {
+            break;
+        }
+    }
+    
+    return [rollObj];
 }
 
 /**

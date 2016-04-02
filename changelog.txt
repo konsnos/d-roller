@@ -1,3 +1,6 @@
+1.0.6
+Fixed issue where modifiers wouldn't be checked further if a number without a roll was found. Now modifiers are added together.
+
 1.0.5
 Fixed issue with rolls being inside text. These shouldn't be parsed as rolls.
 

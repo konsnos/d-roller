@@ -159,7 +159,6 @@
 
                     if (char == '+' || char == '-') // there is a modifier!
                     {
-                        console.log("Found modifier!");
                         var modifierSign = (char == '+') ? 1 : -1;
                         var numberIndex = modifierCharIndex + 1;
                         
@@ -195,6 +194,10 @@
             return [rollObj];
         }
         
+        
+        /**
+         * Checks if there is a modifier roll and parses it. If it's a dice roll calls the appropriate function to handle it.
+         */
         function getModifierRoll(numberIndex, text, positive) {
             var rollObj = {
                 success: false
@@ -211,8 +214,6 @@
                     //modifierNumber = parseInt(text.substr(numberIndex).match(/\d+/)[0]);
                     var modArr = getNumbers(true, numberIndex, text);
                     var lastIndex = modArr[1];
-                    console.log("Modifier: " + modArr[0]);
-                    console.log("Modifier last letter: " + text[modArr[1]]);
 
                     // check if modifier is a dice roll.
                     if (text[modArr[1]] == 'd') {
@@ -226,7 +227,6 @@
                     rollObj.success = true;
                     rollObj.rolls = [];
                     rollObj.modifier = modArr[0] * (positive ? 1 : -1);
-                    console.log("Assigned modifier: " + rollObj.modifier);
                     // and search for more modifiers.
                     if(text[modArr[1]] == '+' || text[modArr[1]] == '-') {
                         var modifierSign = (text[modArr[1]] == '+') ? 1 : -1;
@@ -241,16 +241,12 @@
                     }
                     
                     return [rollObj, lastIndex];
-                    break;
                 } else if (numberChar == 'd') {
-                    console.log("Found dice modifier!");
                     rollObj = getRoll(numberIndex, text, positive);
                     
                     return rollObj;
-                    break;
                 } else // No modifiers it seems
                 {
-                    console.log("No rest modifiers");
                     break;
                 }
             }
