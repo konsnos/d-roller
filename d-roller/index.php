@@ -7,6 +7,7 @@
     <link rel="stylesheet" type="text/css" href="./css/d-roller.css">
     <link rel="stylesheet" type="text/css" href="./css/bootstrap.css">
 
+    <?php include_once("/var/www/vhosts/591736519.linuxzone63.grserver.gr/rpg-gear.com/analyticstracking.php") ?>
     <script src="./js/socket.io.js"></script>
     <script src="./js/jquery-2.2.1.js"></script>
 </head>
@@ -35,17 +36,17 @@
             </div>
 
             <div class="inputMessage" id="chat">
-                    <div class="row">
-                      <div class="col-xs-12">
-                        <div class="input-group input-group-lg">
-                            <input type="text" class="form-control" id="inputMessage" placeholder="Your message" maxlength="100" />
-                          <div class="input-group-btn">
-                            <button class="btn btn-success" id="sendMsgBtn">Send</button>
-                            <button class="btn btn-info" id="infoBtn">?</button>
-                          </div><!-- /btn-group -->
-                        </div><!-- /input-group -->
-                      </div><!-- /.col-xs-12 -->
-                    </div><!-- /.row -->
+                <div class="row">
+                  <div class="col-xs-12">
+                    <div class="input-group input-group-lg">
+                        <input type="text" class="form-control" id="inputMessage" placeholder="Your message" maxlength="100" />
+                      <div class="input-group-btn">
+                        <button class="btn btn-success" id="sendMsgBtn">Send</button>
+                        <button class="btn btn-info" id="infoBtn">?</button>
+                      </div><!-- /btn-group -->
+                    </div><!-- /input-group -->
+                  </div><!-- /.col-xs-12 -->
+                </div><!-- /.row -->
             </div>
         </div>
         <!-- END PLAY SCREEN -->
